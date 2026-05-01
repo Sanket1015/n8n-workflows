@@ -1,0 +1,1017 @@
+{
+  "name": "Portfolio — AI Lead Qualifier",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2adca56f-b3d8-465d-9531-ea2e178648c7",
+              "name": "name",
+              "value": "={{ $json.body.name }}",
+              "type": "string"
+            },
+            {
+              "id": "3b18249e-9958-4db9-8be5-23e9f005e84e",
+              "name": "email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "b8d6fbca-d55e-41d6-88a9-3412ad9ea198",
+              "name": "company",
+              "value": "={{ $json.body.company }}",
+              "type": "string"
+            },
+            {
+              "id": "fe5e51d3-3b64-451c-9841-07f7355f6ff2",
+              "name": "message",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        32
+      ],
+      "id": "70cdaa0b-dc4b-403b-9dc4-715e5bfa8c60",
+      "name": "Clean Input"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "14204a84-6f72-4a02-a2e8-bc821d951798",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "5cd901e7-7d9f-493b-ac9e-9855aa3a4781",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "5e893de5-e278-4d4e-81e2-1a9ee1fefee3",
+              "leftValue": "={{ $json.company }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "20a60126-29ba-4184-ad6d-814988953230",
+              "leftValue": "={{ $json.message }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        32
+      ],
+      "id": "19ea16a7-4de9-47f6-8010-001488aad3f4",
+      "name": "Validate Fields"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"error\",\n  \"message\": \"Missing required fields. All of name, email, company, and message are required.\"\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        128
+      ],
+      "id": "84b5be8f-cd47-41c6-ae87-8d30da3049fd",
+      "name": "Respond — Validation Error"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 1024,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"You are a lead qualification expert for B2B businesses. Analyze the following lead and classify it.\\n\\nName: \" + $('Clean Input').item.json.name + \"\\nEmail: \" + $('Clean Input').item.json.email + \"\\nCompany: \" + $('Clean Input').item.json.company + \"\\nMessage: \" + $('Clean Input').item.json.message + \"\\n\\nClassification criteria:\\n- HOT: Mentions a specific need, budget, team size, timeline, or asks for pricing/demo. High buying intent.\\n- WARM: Shows genuine interest but lacks specifics. Asks general questions, wants to learn more, or requests information without committing.\\n- COLD: No clear interest. Generic inquiry, spam-like, irrelevant, or just browsing with no engagement signal.\\n\\nWhen in doubt between two categories, choose the higher one. It is better to follow up on a warm lead unnecessarily than to miss a real opportunity.\\n\\nRespond ONLY with valid JSON in this exact format, no other text:\\n{\\\"classification\\\": \\\"HOT or WARM or COLD\\\", \\\"confidence\\\": 0-100, \\\"reasoning\\\": \\\"one sentence explaining why\\\", \\\"suggested_action\\\": \\\"one sentence recommending what to do next\\\"}\"\n    }\n  ]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        -80
+      ],
+      "id": "31d11200-a3dc-461f-b736-680d0f6c60c4",
+      "name": "Classify Lead — Anthropic",
+      "retryOnFail": true,
+      "credentials": {
+        "anthropicApi": {
+          "id": "I72UvRzJcTlcbOgf",
+          "name": "Anthropic - Dev"
+        },
+        "httpHeaderAuth": {
+          "id": "NwoVLuk77euLqCji",
+          "name": "Anthropic - Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "afeb0778-2d85-46ec-9fc9-ad234aeb8377",
+              "name": "raw_response",
+              "value": "={{ $json.content[0].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        -80
+      ],
+      "id": "02fc152f-f8f3-4f94-aa4d-9a53900c638a",
+      "name": "Parse LLM Response"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c79841b5-d5ea-4b62-8190-e9573e440637",
+              "name": "classification",
+              "value": "={{ JSON.parse($json.raw_response.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim()).classification }}",
+              "type": "string"
+            },
+            {
+              "id": "a1a4a0d6-81f8-4ead-8361-81b6392ff2ac",
+              "name": "confidence",
+              "value": "={{ JSON.parse($json.raw_response.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim()).confidence }}",
+              "type": "string"
+            },
+            {
+              "id": "bca6074a-de87-4385-83b1-0c70223615ab",
+              "name": "reasoning",
+              "value": "={{ JSON.parse($json.raw_response.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim()).reasoning }}",
+              "type": "string"
+            },
+            {
+              "id": "900380d1-4a0c-4a9f-8cf1-3ecc42ad6fad",
+              "name": "suggested_action",
+              "value": "={{ JSON.parse($json.raw_response.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim()).suggested_action }}",
+              "type": "string"
+            },
+            {
+              "id": "f2641a59-dc58-4e58-9740-403ebf3c552d",
+              "name": "name",
+              "value": "={{ $('Clean Input').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "e9b5e55b-97a4-4428-a05d-135b7152d410",
+              "name": "email",
+              "value": "={{ $('Clean Input').item.json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "d2ca51bc-c217-4e2d-8c8e-035df96401b8",
+              "name": "company",
+              "value": "={{ $('Clean Input').item.json.company }}",
+              "type": "string"
+            },
+            {
+              "id": "0f9a8b9b-5445-4f44-81c5-a19c6cefb0d5",
+              "name": "message",
+              "value": "={{ $('Clean Input').item.json.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        -80
+      ],
+      "id": "ad0e62f3-dc2d-4ec5-8552-18f82bcedf09",
+      "name": "Extract Classification"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"error\",\n  \"message\": \"LLM returned an invalid classification. Please retry.\"\n}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1568,
+        32
+      ],
+      "id": "c70a8c24-1ac5-4e49-b3f9-f79693f98e86",
+      "name": "Respond — Classification Error"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cc2bcda8-3900-450d-89b3-0f21493e1e03",
+              "leftValue": "={{ $json.classification }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1344,
+        -80
+      ],
+      "id": "856c5086-e0b0-4356-af3a-884f8f8182e5",
+      "name": "Validate Classification"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.classification }}",
+                    "rightValue": "HOT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "62dcea5f-442b-407e-abe0-c0ffe430326d"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "0"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "39c4dae3-f8a9-4f9f-a084-94645b22b04c",
+                    "leftValue": "={{ $json.classification }}",
+                    "rightValue": "WARM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "1"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "ced9040f-1e37-4585-ab36-b6988f0b0cf0",
+                    "leftValue": "={{ $json.classification }}",
+                    "rightValue": "COLD",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "2"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1568,
+        -192
+      ],
+      "id": "7f74cbb7-db85-4d73-9c71-d38f57c4d406",
+      "name": "Route by Classification"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "YOUR_AIRTABLE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Automation Test",
+          "cachedResultUrl": "https://airtable.com/YOUR_AIRTABLE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "YOUR_AIRTABLE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://airtable.com/YOUR_AIRTABLE_BASE_ID/YOUR_AIRTABLE_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Confidence": "={{ $('Route by Classification').item.json.confidence }}",
+            "Name": "={{ $('Route by Classification').item.json.name }}",
+            "Email": "={{ $('Route by Classification').item.json.email }}",
+            "Company": "={{ $('Route by Classification').item.json.company }}",
+            "Message": "={{ $('Route by Classification').item.json.message }}",
+            "Classification": "={{ $('Route by Classification').item.json.classification }}",
+            "Reasoning": "={{ $('Route by Classification').item.json.reasoning }}",
+            "Suggested Action": "={{ $('Route by Classification').item.json.suggested_action }}",
+            "Timestamp": "={{ $now.toISO() }}",
+            "Industry": "={{ $if($('Parse Enrichment').isExecuted, $('Parse Enrichment').item.json.industry, \"\") }}",
+            "Estimated Size": "={{ $if($('Parse Enrichment').isExecuted, $('Parse Enrichment').item.json.estimated_size, \"\") }}",
+            "Enrichment Notes": "={{ $if($('Parse Enrichment').isExecuted, $('Parse Enrichment').item.json.notes, \"\") }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Industry",
+              "displayName": "Industry",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Estimated Size",
+              "displayName": "Estimated Size",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Enrichment Notes",
+              "displayName": "Enrichment Notes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Classification",
+              "displayName": "Classification",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "HOT",
+                  "value": "HOT"
+                },
+                {
+                  "name": "WARM",
+                  "value": "WARM"
+                },
+                {
+                  "name": "COLD",
+                  "value": "COLD"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Confidence",
+              "displayName": "Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Reasoning",
+              "displayName": "Reasoning",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Suggested Action",
+              "displayName": "Suggested Action",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        2256,
+        -144
+      ],
+      "id": "bd010730-50d7-4c15-9a9e-f6ad07a9971b",
+      "name": "Log Lead to Airtable",
+      "retryOnFail": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "P8z0gXfx809H8wcK",
+          "name": "Airtable - Dev"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f0ef180a-2408-4e79-95e0-20b8d2f5bf48",
+              "leftValue": "={{ $json.classification }}",
+              "rightValue": "HOT",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1824,
+        -640
+      ],
+      "id": "fadc3e40-8665-4119-9909-d9af3d2d8378",
+      "name": "Is Hot Lead?"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_CHAT_ID",
+        "text": "=🔥 HOT LEAD\n\nName: {{ $json.name }}\nCompany: {{ $json.company }}\nEmail: {{ $json.email }}\nConfidence: {{ $json.confidence }}%\n\nReasoning: {{ $json.reasoning }}\n\nSuggested Action: {{ $json.suggested_action }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2176,
+        -656
+      ],
+      "id": "5f39bfba-289c-4d63-930c-01f348190013",
+      "name": "Alert — Hot Lead",
+      "webhookId": "b59c7e8b-5da3-49e6-a48d-0270f9b87d0a",
+      "credentials": {
+        "telegramApi": {
+          "id": "CG4ALuusOUG6OQQT",
+          "name": "Telegram - Personal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\",\n  \"classification\": \"{{ $json.classification }}\",\n  \"confidence\": \"{{ $json.confidence }}\",\n  \"reasoning\": \"{{ $json.reasoning }}\",\n  \"suggested_action\": \"{{ $json.suggested_action }}\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1904,
+        -16
+      ],
+      "id": "3c02fe1e-69d8-49d9-9d17-7ceec41dfca9",
+      "name": "Respond — Success"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 512,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Based on the following lead information, infer what you can about the company. Make reasonable inferences but do not fabricate specifics you cannot deduce.\\n\\nCompany name: \" + $('Clean Input').item.json.company + \"\\nContact message: \" + $('Clean Input').item.json.message + \"\\n\\nRespond ONLY with valid JSON, no other text:\\n{\\\"industry\\\": \\\"best guess of industry\\\", \\\"estimated_size\\\": \\\"micro (1-10) / small (11-50) / medium (51-200) / large (200+)\\\", \\\"notes\\\": \\\"one sentence of additional context you can infer\\\"}\"\n    }\n  ]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1840,
+        -304
+      ],
+      "id": "23ace6a4-9230-4b36-a4d0-c23e42c6ead9",
+      "name": "Enrich Company",
+      "retryOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "NwoVLuk77euLqCji",
+          "name": "Anthropic - Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst rawText = response.content[0].text;\nconst cleanText = rawText.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\nconst enrichment = JSON.parse(cleanText);\n\nreturn [{\n  json: {\n    ...enrichment\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2032,
+        -304
+      ],
+      "id": "fbe998b4-d8ea-4e57-93b3-48d2e225f077",
+      "name": "Parse Enrichment"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-qualify",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        32
+      ],
+      "id": "6a2aa853-4f85-4b08-b0fc-b8e99b00889a",
+      "name": "Receive Lead",
+      "webhookId": "25caa189-0c31-4c79-9590-188d52d899cc"
+    },
+    {
+      "parameters": {
+        "content": "INTAKE: Webhook receives POST with name, email, company, message. Clean Input strips extra fields. Validate Fields checks all four required fields exist — rejects with 400 if any missing.",
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        144,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "45c32dde-42e9-4f06-bae1-5fc552c51e33",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "CLASSIFICATION: Sends lead data to Anthropic Claude. Prompt includes explicit HOT/WARM/COLD criteria with \"when in doubt, classify higher\" rule. Response is JSON — parsed with code fence cleanup (.replace regex) before JSON.parse.",
+        "height": 176,
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        704,
+        -320
+      ],
+      "typeVersion": 1,
+      "id": "8cd78317-f1c4-4fe6-a2d9-207d209ec326",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "ENRICHMENT: Only runs for HOT and WARM leads (COLD skips via Route by Classification). Second Anthropic call infers industry, company size, and notes from company name + message."
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1872,
+        -480
+      ],
+      "typeVersion": 1,
+      "id": "ed587503-a1aa-4c77-b023-4e903a7d6a2f",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "AIRTABLE LOGGING: All leads logged. Enrichment fields use $if($('Parse Enrichment').isExecuted, ...) to handle COLD leads that skip enrichment. Lead data pulled from $('Clean Input'), classification from $('Route by Classification').",
+        "height": 192,
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2192,
+        16
+      ],
+      "typeVersion": 1,
+      "id": "6cbe5591-d8bd-4a39-9180-9e769f68f46f",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "ALERTING: Only HOT leads trigger a Telegram notification. WARM and COLD are in Airtable for batch review — no alert noise.",
+        "height": 128
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1920,
+        -800
+      ],
+      "typeVersion": 1,
+      "id": "f65320b8-4bdb-4737-8ecb-cf3267fd653e",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Clean Input": {
+      "main": [
+        [
+          {
+            "node": "Validate Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Fields": {
+      "main": [
+        [
+          {
+            "node": "Classify Lead — Anthropic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond — Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Lead — Anthropic": {
+      "main": [
+        [
+          {
+            "node": "Parse LLM Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LLM Response": {
+      "main": [
+        [
+          {
+            "node": "Extract Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Classification": {
+      "main": [
+        [
+          {
+            "node": "Validate Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Classification": {
+      "main": [
+        [
+          {
+            "node": "Route by Classification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond — Classification Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Classification": {
+      "main": [
+        [
+          {
+            "node": "Is Hot Lead?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond — Success",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enrich Company",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond — Success",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enrich Company",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Lead to Airtable",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond — Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Lead to Airtable": {
+      "main": [
+        []
+      ]
+    },
+    "Is Hot Lead?": {
+      "main": [
+        [
+          {
+            "node": "Alert — Hot Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert — Hot Lead": {
+      "main": [
+        []
+      ]
+    },
+    "Enrich Company": {
+      "main": [
+        [
+          {
+            "node": "Parse Enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Enrichment": {
+      "main": [
+        [
+          {
+            "node": "Log Lead to Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive Lead": {
+      "main": [
+        [
+          {
+            "node": "Clean Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "P3rVs23Wrl1ijkpH",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "e90ea91f-3fa1-415e-a911-bf1cafb30434",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "13ab7faddf8177dfc54c355fe0bb6d3707eba5bbd855cce2f4e0eb97db61c2d2"
+  },
+  "id": "O1TeFu1fJ8NN9Rlc",
+  "tags": [
+    {
+      "updatedAt": "2026-04-29T20:54:49.928Z",
+      "createdAt": "2026-04-29T20:54:49.928Z",
+      "id": "8Kiolw2oOZb7sJRF",
+      "name": "phase-2-portfolio-1"
+    }
+  ]
+}
