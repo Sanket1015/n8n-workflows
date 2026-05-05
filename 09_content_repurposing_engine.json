@@ -1,0 +1,823 @@
+{
+  "name": "Content Repurposing Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "repurpose-content",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        192
+      ],
+      "id": "c700f97f-d992-48c2-9510-bc2c2167a246",
+      "name": "Webhook",
+      "webhookId": "YOUR_WEBHOOK_ID"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.body.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        288
+      ],
+      "id": "eb8e8a06-6a9c-4496-9eba-e1e160b1e350",
+      "name": "HTTP Request",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "be24f4aa-0f35-4771-aec7-a7e569aec6cf",
+              "name": "source_url",
+              "value": "={{ $('Webhook').item.json.body.url }}",
+              "type": "string"
+            },
+            {
+              "id": "d43ec095-1cba-4eff-86a5-f9bb4a9c503a",
+              "name": "source_type",
+              "value": "youtube",
+              "type": "string"
+            },
+            {
+              "id": "6bd757d9-38a5-4ee5-b769-f748b34cca1d",
+              "name": "content",
+              "value": "={{ $('Webhook').item.json.body.transcript }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        96
+      ],
+      "id": "017131b9-68e7-4aec-bbb3-c2127b792f0a",
+      "name": "Standardize — YouTube"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e63e86af-8025-40a0-80d9-17a2db5913cc",
+              "name": "source_url",
+              "value": "={{ $('Webhook').item.json.body.url }}",
+              "type": "string"
+            },
+            {
+              "id": "d6ab86d3-3888-4c22-9079-c09d806c34ce",
+              "name": "source_type",
+              "value": "blog",
+              "type": "string"
+            },
+            {
+              "id": "746bf260-4167-4fe1-bcba-fc4ebba791dd",
+              "name": "content",
+              "value": "={{ $json.content || $json.content_alt1 || $json.content_alt2 || $json.content_alt3 || 'No content extracted' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        288
+      ],
+      "id": "0de1bfe6-8159-4dfb-9fe1-610f428b77ec",
+      "name": "Standardize — Blog"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\":\"claude-sonnet-4-20250514\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"You are a professional content strategist. Given the following source content, write a LinkedIn post.\\n\\nRequirements:\\n- 150-200 words\\n- Start with a strong hook (first line should make people stop scrolling)\\n- Professional but conversational tone\\n- Include 2-3 actionable insights from the content\\n- End with a question or call-to-action to drive engagement\\n- Add 3-5 relevant hashtags at the end\\n- Do NOT use emojis\\n\\nSource content:\\n{{ $json.escaped_content }}\\n\\nRespond ONLY with the LinkedIn post text. No preamble, no explanation.\"}]}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1568,
+        288
+      ],
+      "id": "00f4620c-1255-4d7e-9a45-8402331ad625",
+      "name": "LLM — LinkedIn Post",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "anthropicApi": {
+          "id": "I72UvRzJcTlcbOgf",
+          "name": "Anthropic - Dev"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items.map(item => {\n  const escaped = item.json.content\n    .replace(/\\\\/g, '\\\\\\\\')\n    .replace(/\"/g, '\\\\\"')\n    .replace(/\\n/g, '\\\\n')\n    .replace(/\\r/g, '\\\\r')\n    .replace(/\\t/g, '\\\\t');\n  \n  return {\n    json: {\n      ...item.json,\n      escaped_content: escaped\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        192
+      ],
+      "id": "8bab2ba4-a86f-45e1-a80a-f414bf5cdbe8",
+      "name": "Escape Content for JSON"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\":\"claude-sonnet-4-20250514\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"You are a social media strategist. Given the following source content, write 5 tweets.\\n\\nRequirements:\\n- Each tweet must be under 280 characters\\n- Each tweet should be standalone (makes sense without reading the others)\\n- But all 5 should be thematically linked to the source content\\n- Mix of formats: one insight, one statistic or quote, one question, one hot take, one practical tip\\n- No emojis\\n- No hashtags\\n\\nSource content:\\n{{ $json.escaped_content }}\\n\\nRespond ONLY with the 5 tweets, numbered 1-5, each on its own line. No preamble, no explanation.\"}]}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1568,
+        480
+      ],
+      "id": "885a3f6b-3d91-4b7e-8f9e-3b39dc0cda08",
+      "name": "LLM — Tweets",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "anthropicApi": {
+          "id": "I72UvRzJcTlcbOgf",
+          "name": "Anthropic - Dev"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\":\"claude-sonnet-4-20250514\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"You are an email marketing specialist. Given the following source content, write an email newsletter.\\n\\nRequirements:\\n- Start with a compelling subject line on its own line, prefixed with Subject: \\n- Opening paragraph: hook the reader with why this topic matters to them\\n- Middle paragraph: 2-3 key insights or takeaways from the source content\\n- Closing paragraph: one clear call-to-action (visit a link, reply, share, etc.)\\n- Tone: informative but warm, like a smart friend sharing something useful\\n- Total length: 200-300 words (excluding subject line)\\n- No emojis\\n\\nSource content:\\n{{ $json.escaped_content }}\\n\\nRespond ONLY with the subject line and newsletter body. No preamble, no explanation.\"}]}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1568,
+        96
+      ],
+      "id": "ca9f61ba-6aeb-4223-a36b-98b8bd73260d",
+      "name": "LLM — Newsletter",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "anthropicApi": {
+          "id": "I72UvRzJcTlcbOgf",
+          "name": "Anthropic - Dev"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\":\"claude-sonnet-4-20250514\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"You are a visual creative director. Given the following source content, write one detailed image generation prompt suitable for AI tools like Midjourney or DALL-E.\\n\\nRequirements:\\n- One single image prompt, not multiple options\\n- Include: subject, composition, style, lighting, color palette, mood\\n- Be specific and visual — describe what someone would literally see in the image\\n- The image should work as a hero image or thumbnail for the source content\\n- Keep it under 100 words\\n- Do not include any negative prompts or technical parameters (no --ar, no --v, etc.)\\n\\nSource content:\\n{{ $json.escaped_content }}\\n\\nRespond ONLY with the image prompt. No preamble, no explanation, no labels.\"}]}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1568,
+        -96
+      ],
+      "id": "7722ad8e-ba8c-4c3f-8d48-7d806200db10",
+      "name": "LLM — Image Prompt",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "anthropicApi": {
+          "id": "I72UvRzJcTlcbOgf",
+          "name": "Anthropic - Dev"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        3136,
+        192
+      ],
+      "id": "2323833b-0a0c-416a-817e-05cf5dca933a",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Helper: safely extract LLM output, return null if the node failed\nfunction getLLMOutput(nodeName) {\n  try {\n    const data = $(nodeName).first().json;\n    if (data.error) return null; // Continue On Fail passes an error object\n    return data.content[0].text;\n  } catch (e) {\n    return null;\n  }\n}\n\nconst linkedin = getLLMOutput('LLM — LinkedIn Post');\nconst tweets = getLLMOutput('LLM — Tweets');\nconst newsletter = getLLMOutput('LLM — Newsletter');\nconst imagePrompt = getLLMOutput('LLM — Image Prompt');\n\nconst outputs = { linkedin, tweets, newsletter, imagePrompt };\nconst succeeded = Object.entries(outputs).filter(([k, v]) => v !== null);\nconst failed = Object.entries(outputs).filter(([k, v]) => v === null);\n\n// If ALL four failed, throw so the error workflow fires\nif (succeeded.length === 0) {\n  throw new Error('All four LLM calls failed. No content generated.');\n}\n\nconst sourceUrl = $('Escape Content for JSON').first().json.source_url;\nconst sourceType = $('Escape Content for JSON').first().json.source_type;\nconst today = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });\nconst docTitle = `Repurposed Content — ${sourceType} — ${today}`;\n\nconst sections = [];\nif (linkedin) sections.push(`═══════════════════════════════\\nLINKEDIN POST\\n═══════════════════════════════\\n\\n${linkedin}`);\nif (tweets) sections.push(`═══════════════════════════════\\nTWEETS\\n═══════════════════════════════\\n\\n${tweets}`);\nif (newsletter) sections.push(`═══════════════════════════════\\nEMAIL NEWSLETTER\\n═══════════════════════════════\\n\\n${newsletter}`);\nif (imagePrompt) sections.push(`═══════════════════════════════\\nIMAGE PROMPT\\n═══════════════════════════════\\n\\n${imagePrompt}`);\n\nconst failedNote = failed.length > 0\n  ? `\\n\\n⚠️ PARTIAL RESULT: ${failed.map(([k]) => k).join(', ')} failed to generate.\\n`\n  : '';\n\nconst docBody = `Source: ${sourceUrl}\\nType: ${sourceType}\\nGenerated: ${today}\\n` +\n  `Outputs: ${succeeded.length}/4 succeeded${failedNote}\\n\\n` +\n  sections.join('\\n\\n');\n\nreturn [{\n  json: {\n    title: docTitle,\n    body: docBody,\n    outputs_generated: succeeded.length,\n    failed_outputs: failed.map(([k]) => k)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        192
+      ],
+      "id": "bc8864c1-328e-48f1-85f2-971bfd3ff071",
+      "name": "Assemble Doc Content"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentURL": "={{ $json.id }}",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "insert",
+              "text": "={{ $('Assemble Doc Content').first().json.body }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        2688,
+        192
+      ],
+      "id": "4adf1340-e696-4189-820c-04d4f9d18407",
+      "name": "Update Google Doc — Insert Content",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "GdRXCvWiR5QSXKDr",
+          "name": "Google Docs - Test"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "folderId": "default",
+        "title": "={{ $json.title }}"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        192
+      ],
+      "id": "c42af7e2-d3ec-41be-a9e3-3bf97eec0286",
+      "name": "Create Google Doc",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "GdRXCvWiR5QSXKDr",
+          "name": "Google Docs - Test"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c50b3e2d-034b-450a-ab6d-36fb872aba46",
+              "name": "status",
+              "value": "={{ $('Assemble Doc Content').first().json.outputs_generated === 4 ? 'success' : 'partial' }}",
+              "type": "string"
+            },
+            {
+              "id": "210975e2-473e-46ab-9495-2a19f2b6cb05",
+              "name": "google_doc_url",
+              "value": "=https://docs.google.com/document/d/{{ $('Create Google Doc').first().json.id }}/edit",
+              "type": "string"
+            },
+            {
+              "id": "c8c40b24-44d5-4414-af82-a1cab77e26a7",
+              "name": "outputs_generated",
+              "value": "={{ $('Assemble Doc Content').first().json.outputs_generated }}",
+              "type": "string"
+            },
+            {
+              "id": "ecbc4b1c-d94f-4d81-9977-9e6acc4bf0d8",
+              "name": "failed_outputs",
+              "value": "={{ $('Assemble Doc Content').first().json.failed_outputs.join(', ') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2912,
+        192
+      ],
+      "id": "0d793fa7-56ec-4a8e-962d-84b223b68637",
+      "name": "Shape Webhook Response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1e4af512-d297-4960-be42-e37ebb069e61",
+              "leftValue": "={{ $json.body.transcript }}",
+              "rightValue": "youtube.com",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        192
+      ],
+      "id": "ecee9910-7584-4d64-934d-b5b175fa8aa7",
+      "name": "Route — YouTube or Blog"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "content",
+              "cssSelector": "article"
+            },
+            {
+              "key": "content_alt1",
+              "cssSelector": ".post-content"
+            },
+            {
+              "key": "content_alt2",
+              "cssSelector": "main"
+            },
+            {
+              "key": "content_alt3",
+              "cssSelector": "body"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        288
+      ],
+      "id": "36959be3-332a-4e3b-ad88-c4b5fdb092f0",
+      "name": "Extract Blog Content"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1120,
+        192
+      ],
+      "id": "22ca4dc5-bab8-4744-882f-978669d2bff2",
+      "name": "Merge — YouTube + Blog"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1792,
+        384
+      ],
+      "id": "5b77c36d-2ecf-4acc-91f5-e41fe39c1513",
+      "name": "Merge — LinkedIn + Tweets"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1792,
+        0
+      ],
+      "id": "18014629-00c2-462d-a042-12ff84b59ca5",
+      "name": "Merge — Newsletter + Image Prompt"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2016,
+        192
+      ],
+      "id": "058ffcc7-9737-4511-a41b-35a0794e0b1c",
+      "name": "Merge — All LLM Outputs"
+    },
+    {
+      "parameters": {
+        "content": "URL routing: checks if input URL contains 'youtube.com' or 'youtu.be'. YouTube path expects a 'transcript' field pasted manually (auto-transcript fetching was abandoned — unreliable). Blog path fetches the page and extracts content via HTML node.",
+        "height": 176,
+        "width": 288
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        160,
+        -32
+      ],
+      "typeVersion": 1,
+      "id": "e2cea1d6-ed26-4260-99d9-3cda53827c5e",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Escapes newlines, quotes, and backslashes in raw content before injecting into Anthropic API request bodies. Without this, special characters in the source text break the JSON payload.",
+        "height": 176
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1232,
+        -16
+      ],
+      "typeVersion": 1,
+      "id": "b2d6d904-5cba-4683-949c-eae6dd63509f",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Four parallel Anthropic calls: LinkedIn post, 5 tweets, email newsletter, AI image prompt. All set to Continue On Fail — if one fails, the others still produce output. Retry: 2 attempts, 5s wait.",
+        "height": 176
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1504,
+        -304
+      ],
+      "typeVersion": 1,
+      "id": "b9feaf2c-e8ed-44c8-84ce-459f1fa40bd6",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "Assembles outputs by node name (not merge order). Handles partial failures — only includes sections that succeeded. Throws if all 4 fail, which fires the error workflow."
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2176,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "6b5d4e87-4818-4fa5-92b8-438cd4cd55cb",
+      "name": "Sticky Note3"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Route — YouTube or Blog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Extract Blog Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Standardize — Blog": {
+      "main": [
+        [
+          {
+            "node": "Merge — YouTube + Blog",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Standardize — YouTube": {
+      "main": [
+        [
+          {
+            "node": "Merge — YouTube + Blog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM — LinkedIn Post": {
+      "main": [
+        [
+          {
+            "node": "Merge — LinkedIn + Tweets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escape Content for JSON": {
+      "main": [
+        [
+          {
+            "node": "LLM — LinkedIn Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "LLM — Tweets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "LLM — Image Prompt",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "LLM — Newsletter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM — Image Prompt": {
+      "main": [
+        [
+          {
+            "node": "Merge — Newsletter + Image Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM — Newsletter": {
+      "main": [
+        [
+          {
+            "node": "Merge — Newsletter + Image Prompt",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "LLM — Tweets": {
+      "main": [
+        [
+          {
+            "node": "Merge — LinkedIn + Tweets",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Assemble Doc Content": {
+      "main": [
+        [
+          {
+            "node": "Create Google Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "Update Google Doc — Insert Content": {
+      "main": [
+        [
+          {
+            "node": "Shape Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Google Doc": {
+      "main": [
+        [
+          {
+            "node": "Update Google Doc — Insert Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Webhook Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route — YouTube or Blog": {
+      "main": [
+        [
+          {
+            "node": "Standardize — YouTube",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Blog Content": {
+      "main": [
+        [
+          {
+            "node": "Standardize — Blog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge — YouTube + Blog": {
+      "main": [
+        [
+          {
+            "node": "Escape Content for JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge — LinkedIn + Tweets": {
+      "main": [
+        [
+          {
+            "node": "Merge — All LLM Outputs",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge — Newsletter + Image Prompt": {
+      "main": [
+        [
+          {
+            "node": "Merge — All LLM Outputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge — All LLM Outputs": {
+      "main": [
+        [
+          {
+            "node": "Assemble Doc Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "YOUR_ERROR_WORKFLOW_ID",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "ae520c16-44f4-4002-873b-1b89da48e07a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_INSTANCE_ID"
+  },
+  "id": "YOUR_WORKFLOW_ID",
+  "tags": []
+}
