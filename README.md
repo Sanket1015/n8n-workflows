@@ -22,6 +22,18 @@ Accepts a YouTube or blog URL via webhook, generates four content pieces (Linked
 
 **Setup required after import:** (1) Create your own Anthropic API and Google Docs OAuth credentials and assign them in each node. (2) Create or assign your own error handler workflow in Workflow Settings → Error Workflow.
 
+### 10_invoice_processor.json — Invoice/Receipt Processor
+
+Watches a Gmail inbox for emails with PDF invoice attachments, extracts structured data (vendor, date, total, line items) using Claude's document understanding API, validates the extraction, and logs everything to a Google Sheet. Failed extractions trigger a Telegram alert so nothing gets silently dropped.
+
+**Setup required after import:** (1) Create your own Anthropic API, Gmail OAuth, Google Sheets OAuth, and Telegram credentials and assign them in each node. (2) Create a Gmail label for invoices and update the Gmail Trigger node with your label ID. (3) Create or assign your own error handler workflow in Workflow Settings → Error Workflow.
+
+### 11_invoice_daily_summary.json — Invoice Daily Summary
+
+Companion workflow for the Invoice Processor. Runs daily at 6 PM, reads the Invoice Log Google Sheet, aggregates invoices from the last 24 hours (count, total amount, vendor list), and sends a Telegram summary. Sends a "no invoices" message if the period was empty rather than failing silently.
+
+**Setup required after import:** (1) Create your own Google Sheets OAuth and Telegram credentials and assign them in each node. (2) Point the Google Sheets node to your own Invoice Log spreadsheet. (3) Create or assign your own error handler workflow in Workflow Settings → Error Workflow.
+
 ## Contact
 
 - Email: sanket.automates@gmail.com
