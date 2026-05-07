@@ -1,0 +1,161 @@
+{
+  "name": "Invoice Daily Summary",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);\n\nconst recentInvoices = $input.all().filter(item => {\n  const processedAt = new Date(item.json['Processed At']);\n  return processedAt >= twentyFourHoursAgo;\n});\n\nif (recentInvoices.length === 0) {\n  return [{\n    json: {\n      hasInvoices: false,\n      message: \"No invoices processed in the last 24 hours.\"\n    }\n  }];\n}\n\nlet totalAmount = 0;\nconst vendors = [];\n\nfor (const inv of recentInvoices) {\n  const total = parseFloat(inv.json['Total']) || 0;\n  const subtotal = parseFloat(inv.json['Subtotal']) || 0;\n  totalAmount += total || subtotal;\n  vendors.push(inv.json['Vendor'] || 'Unknown Vendor');\n}\n\nconst summary = `📊 Daily Invoice Summary\\n\\n`\n  + `Invoices processed: ${recentInvoices.length}\\n`\n  + `Total amount: ${totalAmount.toFixed(2)}\\n`\n  + `Vendors: ${vendors.join(', ')}\\n`\n  + `Period: Last 24 hours`;\n\nreturn [{\n  json: {\n    hasInvoices: true,\n    invoiceCount: recentInvoices.length,\n    totalAmount: totalAmount.toFixed(2),\n    vendors: vendors,\n    message: summary\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "076b96bb-0556-4784-961e-8a3aa84126f4",
+      "name": "Aggregate Last 24H"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 18
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c58bf6e0-64ac-4d5d-9fa8-178e61598727",
+      "name": "Daily 6PM IST Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Invoice Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "38d0153c-cd58-46b6-88aa-bba707f20afe",
+      "name": "Read Invoice Log",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "g00qwQwZxV01ZjPJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_CHAT_ID",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "7bdebb20-7f08-4675-ae7d-df636f087adb",
+      "name": "Send Daily Summary",
+      "webhookId": "YOUR_WEBHOOK_ID",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "telegramApi": {
+          "id": "CG4ALuusOUG6OQQT",
+          "name": "Telegram - Personal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Filters the Invoice Log for rows from the last 24 hours. Aggregates: total invoice count, sum of totals, and list of unique vendors. If no invoices found in the period, sends a \"0 invoices\" message instead of failing."
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        336,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "bc8376bb-5dc3-4cdb-bb39-98e7947a1d6c",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Aggregate Last 24H": {
+      "main": [
+        [
+          {
+            "node": "Send Daily Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 6PM IST Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Invoice Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Invoice Log": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Last 24H",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "YOUR_ERROR_WORKFLOW_ID",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "8e7d7520-8b48-4f84-bb61-4608014592d8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_INSTANCE_ID"
+  },
+  "id": "aV4M5ggMU5GjLHF4",
+  "tags": []
+}

@@ -1,0 +1,593 @@
+{
+  "name": "Invoice/Receipt Processor",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const results = [];\n\nfor (let i = 0; i < $input.all().length; i++) {\n  const binaryData = await this.helpers.getBinaryDataBuffer(i, 'attachment_0');\n  const base64String = binaryData.toString('base64');\n  const item = $input.all()[i];\n\n  results.push({\n    json: {\n      base64Pdf: base64String,\n      fileName: item.binary.attachment_0.fileName,\n      mimeType: item.binary.attachment_0.mimeType,\n      emailSubject: item.json.subject,\n      emailDate: item.json.date,\n      emailFrom: item.json.from.text\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "6b8e08e1-7406-4137-a6c7-a8097362c842",
+      "name": "PDF to Base64"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 1024,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"document\",\n          \"source\": {\n            \"type\": \"base64\",\n            \"media_type\": \"application/pdf\",\n            \"data\": \"{{ $json.base64Pdf }}\"\n          }\n        },\n        {\n          \"type\": \"text\",\n          \"text\": \"Extract the following from this invoice or receipt. Respond ONLY with valid JSON, no markdown, no explanation, no backticks. Use this exact structure: {\\\"vendor_name\\\": \\\"\\\", \\\"invoice_number\\\": \\\"\\\", \\\"date\\\": \\\"\\\", \\\"currency\\\": \\\"\\\", \\\"line_items\\\": [{\\\"description\\\": \\\"\\\", \\\"amount\\\": 0}], \\\"subtotal\\\": 0, \\\"tax\\\": 0, \\\"total\\\": 0}. If a field is not found, use null.\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        0
+      ],
+      "id": "eedea700-6779-49bb-93d9-474f1416fc9d",
+      "name": "Claude — Extract Invoice Data",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "anthropicApi": {
+          "id": "I72UvRzJcTlcbOgf",
+          "name": "Anthropic - Dev"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b4b3b60b-48c0-41fa-85c8-9968cbedd92c",
+              "name": "Vendor",
+              "value": "={{ JSON.parse($json.content[0].text).vendor_name }}",
+              "type": "string"
+            },
+            {
+              "id": "2c9bf33c-9fae-421b-8c91-29285c65dc4c",
+              "name": "Invoice Number",
+              "value": "={{ JSON.parse($json.content[0].text).invoice_number }}",
+              "type": "string"
+            },
+            {
+              "id": "cbcadc02-845f-4613-bf77-22271069dd7f",
+              "name": "Date",
+              "value": "={{ JSON.parse($json.content[0].text).date }}",
+              "type": "string"
+            },
+            {
+              "id": "b8adda9c-56b5-4859-83f0-1c56ae9da7e5",
+              "name": "Currency",
+              "value": "={{ JSON.parse($json.content[0].text).currency }}",
+              "type": "string"
+            },
+            {
+              "id": "47a309a5-9f85-4cf5-a5f1-64e3ca5926dd",
+              "name": "Subtotal",
+              "value": "={{ JSON.parse($json.content[0].text).subtotal }}",
+              "type": "string"
+            },
+            {
+              "id": "d3d22d57-78e5-4cbd-918b-2e91bc949c26",
+              "name": "Tax",
+              "value": "={{ JSON.parse($json.content[0].text).tax }}",
+              "type": "string"
+            },
+            {
+              "id": "e3a8f2ac-e56f-4742-a30a-b0cb9c88f441",
+              "name": "Total",
+              "value": "={{ JSON.parse($json.content[0].text).total }}",
+              "type": "string"
+            },
+            {
+              "id": "95c8919b-ec61-4a2c-a0d1-e20fe99afaf0",
+              "name": "Line Items",
+              "value": "={{ JSON.stringify(JSON.parse($json.content[0].text).line_items) }}",
+              "type": "string"
+            },
+            {
+              "id": "f574f291-aae0-479a-99b4-1bda140db633",
+              "name": "Processed At",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "1b95712e-1bb0-4558-8614-89385069546c",
+              "name": "Email Subject",
+              "value": "={{ $('PDF to Base64').item.json.emailSubject }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        0
+      ],
+      "id": "fdededbd-87ab-4c4b-a479-f4d012597013",
+      "name": "Shape Invoice Data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1899e5e1-fdbb-44cb-adb1-d06dcc4de6c0",
+              "leftValue": "={{ $json.Vendor }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "aa157573-a086-4af3-8753-f7539f0ab898",
+              "leftValue": "={{ $json.Total }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        0
+      ],
+      "id": "b5d0c2e0-febb-4b4e-9624-bd1a74354de2",
+      "name": "Validate Extraction"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_CHAT_ID",
+        "text": "=⚠️ Invoice extraction failed\n\nEmail subject: {{ $('Gmail Trigger - Invoices').item.json.subject }}\nFrom: {{ $('Gmail Trigger - Invoices').item.json.from.value[0].address }}\n\nThe PDF could not be processed automatically. Check the email manually.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        96
+      ],
+      "id": "80dca843-828d-48d3-95af-2f1472084d5e",
+      "name": "Alert - Extraction Failed",
+      "webhookId": "YOUR_WEBHOOK_ID",
+      "credentials": {
+        "telegramApi": {
+          "id": "CG4ALuusOUG6OQQT",
+          "name": "Telegram - Personal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "labelIds": [
+            "YOUR_GMAIL_LABEL_ID"
+          ]
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4b416663-2859-4f8d-9280-0e57bcccaca3",
+      "name": "Gmail Trigger - Invoices",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "COgzIk5q8MxwdN33",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Invoice Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Vendor",
+              "displayName": "Vendor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Invoice Number",
+              "displayName": "Invoice Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Currency",
+              "displayName": "Currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Subtotal",
+              "displayName": "Subtotal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tax",
+              "displayName": "Tax",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total",
+              "displayName": "Total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Line Items",
+              "displayName": "Line Items",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Processed At",
+              "displayName": "Processed At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Subject",
+              "displayName": "Email Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "vendor",
+              "displayName": "vendor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "invoice_number",
+              "displayName": "invoice_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "subtotal",
+              "displayName": "subtotal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tax",
+              "displayName": "tax",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "total",
+              "displayName": "total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "line_items",
+              "displayName": "line_items",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "processed_at",
+              "displayName": "processed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email_subject",
+              "displayName": "email_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1120,
+        -96
+      ],
+      "id": "28bb8cb0-2f9a-4425-9ef3-aeebcd8ef4e1",
+      "name": "Append to Invoice Log",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "g00qwQwZxV01ZjPJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Converts the PDF binary attachment from Gmail into a base64 string. This lets us send the PDF content to Claude's API as a document, avoiding the complexity of a separate Vision/OCR setup.",
+        "height": 224,
+        "width": 176
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        192,
+        -240
+      ],
+      "typeVersion": 1,
+      "id": "34414bd7-6480-481f-96a7-1becf1df8d61",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Sends the base64 PDF to Claude (claude-sonnet-4-6) with a prompt asking it to extract: Vendor, Date, Invoice Number, Total, and Line Items. Response is JSON. If the PDF is unreadable or not an invoice, fields may come back empty — the Validate Extraction node catches this.",
+        "height": 256,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        400,
+        -272
+      ],
+      "typeVersion": 1,
+      "id": "f5fa58f1-a561-47ad-9073-a30395091795",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Checks that Vendor and Total are not empty. If either is missing, the extraction likely failed — routes to Telegram alert instead of writing bad data to the spreadsheet.",
+        "height": 224,
+        "width": 176
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        864,
+        -240
+      ],
+      "typeVersion": 1,
+      "id": "94955210-88c1-4f1f-96d0-aab855841e96",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "PDF to Base64": {
+      "main": [
+        [
+          {
+            "node": "Claude — Extract Invoice Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude — Extract Invoice Data": {
+      "main": [
+        [
+          {
+            "node": "Shape Invoice Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Invoice Data": {
+      "main": [
+        [
+          {
+            "node": "Validate Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Extraction": {
+      "main": [
+        [
+          {
+            "node": "Append to Invoice Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alert - Extraction Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger - Invoices": {
+      "main": [
+        [
+          {
+            "node": "PDF to Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "YOUR_ERROR_WORKFLOW_ID",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "a594593f-b1dd-4df7-b945-44b5a8bfac09",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_INSTANCE_ID"
+  },
+  "id": "UCMHPt5nyxTm9dyb",
+  "tags": []
+}
