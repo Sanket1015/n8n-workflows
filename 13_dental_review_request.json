@@ -1,0 +1,522 @@
+{
+  "name": "Dental — Post-Visit Review Request",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Dental Clinic Product — Workflow 2 of 3. Sends review request emails to patients who completed their visit today.",
+        "height": 112,
+        "width": 336
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -112,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "46d23b59-f1b8-4525-a64d-ba8d18554730",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "jsCode": "const today = DateTime.now().setZone('Asia/Kolkata').toFormat('yyyy-MM-dd');\n\nconst filtered = $input.all().filter(item => {\n  const status = (item.json['Status'] || '').trim();\n  const appointmentDate = (item.json['Appointment Date'] || '').trim();\n  const reviewSent = (item.json['Review Request Sent'] || '').trim();\n  const email = (item.json['Email'] || '').trim();\n\n  return status === 'Completed' &&\n         appointmentDate === today &&\n         reviewSent === '' &&\n         email !== '';\n});\n\nif (filtered.length === 0) {\n  return [];\n}\n\nreturn filtered;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "9254c172-d744-4814-8c34-33e1d6238120",
+      "name": "Filter — Completed Today, No Review Sent"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E",
+          "mode": "list",
+          "cachedResultName": "Dental Clinic Demo — Patient Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1183646179,
+          "mode": "list",
+          "cachedResultName": "Clinic Config",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit#gid=1183646179"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        192
+      ],
+      "id": "c00977fa-6dae-4d24-a812-4a138436005d",
+      "name": "Read Clinic Config",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "g00qwQwZxV01ZjPJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22319a94-cb02-46c2-96bf-0675e2720c28",
+              "name": "to",
+              "value": "={{ $json['Email'] }}",
+              "type": "string"
+            },
+            {
+              "id": "9c523372-f924-4771-acf4-21a80df0b648",
+              "name": "subject",
+              "value": "=Thank you for visiting {{ $json['Clinic Name'] }}!",
+              "type": "string"
+            },
+            {
+              "id": "b71a28f2-db0f-489b-b472-1b9c11998e9a",
+              "name": "body",
+              "value": "=Dear {{ $json['First Name'] }},<br><br>Thank you for visiting {{ $json['Clinic Name'] }} today for your {{ $json['Appointment Type'] }} appointment with {{ $json['Dentist Name'] }}.<br><br>We hope everything went well! If you have a moment, we'd really appreciate hearing about your experience. Your feedback helps us improve and helps other patients find quality dental care.<br><br>Leave a quick review here: {{ $json['Google Review URL'] }}<br><br>It only takes 30 seconds, and it means a lot to our team.<br><br>Thank you,<br>The {{ $json['Clinic Name'] }} Team<br>{{ $json['Clinic Phone'] }}",
+              "type": "string"
+            },
+            {
+              "id": "5dd82aa1-f774-4375-8c12-9e0b835d530f",
+              "name": "patientId",
+              "value": "={{ $json['Patient ID'] }}",
+              "type": "string"
+            },
+            {
+              "id": "7d819ce9-8e77-42f0-84cd-8aa992c916ad",
+              "name": "firstName",
+              "value": "={{ $json['First Name'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        96
+      ],
+      "id": "88249122-3394-4c03-88f2-a4be1b847b68",
+      "name": "Shape Review Email"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E",
+          "mode": "list",
+          "cachedResultName": "Dental Clinic Demo — Patient Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Patients",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Review Request Sent": "={{ DateTime.now().setZone('Asia/Kolkata').toFormat('yyyy-MM-dd') }}",
+            "Patient ID": "={{ $('Shape Review Email').item.json.patientId }}"
+          },
+          "matchingColumns": [
+            "Patient ID"
+          ],
+          "schema": [
+            {
+              "id": "Patient ID",
+              "displayName": "Patient ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Appointment Date",
+              "displayName": "Appointment Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Appointment Time",
+              "displayName": "Appointment Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Appointment Type",
+              "displayName": "Appointment Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Dentist Name",
+              "displayName": "Dentist Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Last Reminder Sent",
+              "displayName": "Last Reminder Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Review Request Sent",
+              "displayName": "Review Request Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Re-engagement Sent",
+              "displayName": "Re-engagement Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        96
+      ],
+      "id": "e10675bd-b116-42ef-b484-b88d942fe03d",
+      "name": "Log — Review Request Sent",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "g00qwQwZxV01ZjPJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 18
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        96
+      ],
+      "id": "1742adbe-e49b-4e92-8064-f00e63d2bca6",
+      "name": "Trigger — Daily 6 PM IST"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E",
+          "mode": "list",
+          "cachedResultName": "Dental Clinic Demo — Patient Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Patients",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "ca9c1ce0-aff4-4c7f-a9f2-cd7196923411",
+      "name": "Read Patient Database",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "g00qwQwZxV01ZjPJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        96
+      ],
+      "id": "4321a9a5-63e4-4d95-8d32-6c282fafe410",
+      "name": "Send Review Email",
+      "webhookId": "ac1760d8-2da4-4462-8eee-e81eabd0520b",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "COgzIk5q8MxwdN33",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        96
+      ],
+      "id": "89148bb5-afa0-492f-9449-9e3d555bc498",
+      "name": "Merge — Patients + Config"
+    },
+    {
+      "parameters": {
+        "content": "Filters for: Status=Completed, Appointment Date=today (IST), Review Request Sent empty, has email.",
+        "height": 128,
+        "width": 224
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        400,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "26222fb0-68f4-4f36-a0b9-6e80e44dc070",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Read Clinic Config": {
+      "main": [
+        [
+          {
+            "node": "Merge — Patients + Config",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Filter — Completed Today, No Review Sent": {
+      "main": [
+        [
+          {
+            "node": "Merge — Patients + Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Review Email": {
+      "main": [
+        [
+          {
+            "node": "Send Review Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger — Daily 6 PM IST": {
+      "main": [
+        [
+          {
+            "node": "Read Patient Database",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Clinic Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Patient Database": {
+      "main": [
+        [
+          {
+            "node": "Filter — Completed Today, No Review Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Review Email": {
+      "main": [
+        [
+          {
+            "node": "Log — Review Request Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge — Patients + Config": {
+      "main": [
+        [
+          {
+            "node": "Shape Review Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "P3rVs23Wrl1ijkpH",
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": -1,
+    "availableInMCP": false
+  },
+  "versionId": "2bfc6ed5-a3c2-49b9-935f-abdcc6ed9e58",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "13ab7faddf8177dfc54c355fe0bb6d3707eba5bbd855cce2f4e0eb97db61c2d2"
+  },
+  "id": "RUmbbo7Nu08gSAEf",
+  "tags": []
+}

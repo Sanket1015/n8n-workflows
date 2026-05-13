@@ -1,0 +1,516 @@
+{
+  "name": "Dental — Appointment Reminder",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Dental Clinic Product — Workflow 1 of 3. Sends reminder emails to patients with appointments tomorrow.",
+        "height": 80,
+        "width": 384
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -96,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "1074691a-430b-4adb-9ed8-c84ceb56c6ae",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E",
+          "mode": "list",
+          "cachedResultName": "Dental Clinic Demo — Patient Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Patients",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "c25cb157-90bd-444e-89d3-440b1b25b90f",
+      "name": "Read — Patient Database",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "g00qwQwZxV01ZjPJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const today = DateTime.now().setZone('Asia/Kolkata');\nconst tomorrow = today.plus({ days: 1 }).toFormat('yyyy-MM-dd');\n\nconst filtered = $input.all().filter(item => {\n  const appointmentDate = item.json['Appointment Date'];\n  const status = item.json['Status'];\n  const email = item.json['Email'];\n  const alreadySent = item.json['Last Reminder Sent'];\n  \n  return appointmentDate === tomorrow \n    && status === 'Scheduled' \n    && email && email.trim() !== ''\n    && (!alreadySent || alreadySent.trim() === '');\n});\n\nreturn filtered;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "9fa28a09-af3f-4e72-a37a-136bc7a1ca18",
+      "name": "Filter — Tomorrow + Scheduled + Has Email"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1ed90286-622f-4fc8-b479-9dcfb07ff8e9",
+              "name": "to",
+              "value": "={{ $json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "d7f39f83-0b0b-4b22-9f7c-e72cc1831b36",
+              "name": "subject",
+              "value": "={{ 'Reminder: Your ' + $json['Appointment Type'] + ' at ' + $json['Clinic Name'] + ' tomorrow at ' + $json['Appointment Time'] }}",
+              "type": "string"
+            },
+            {
+              "id": "09b19834-22ae-4545-ba9a-1c4e8ba0731f",
+              "name": "body",
+              "value": "={{ 'Hi ' + $json['First Name'] + ',\\n\\nThis is a friendly reminder that you have an appointment tomorrow:\\n\\n📋 Appointment: ' + $json['Appointment Type'] + '\\n📅 Date: ' + $json['Appointment Date'] + '\\n🕐 Time: ' + $json['Appointment Time'] + '\\n👨‍⚕️ Dentist: ' + $json['Dentist Name'] + '\\n📍 Clinic: ' + $json['Clinic Name'] + '\\n📞 Phone: ' + $json['Clinic Phone'] + '\\n\\nIf you need to reschedule or cancel, please call us at ' + $json['Clinic Phone'] + ' as soon as possible.\\n\\nWe look forward to seeing you!\\n\\nWarm regards,\\n' + $json['Clinic Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "1baad8e5-a8a0-4101-9f88-fe61f91ea409",
+              "name": "patientRow",
+              "value": "={{ $json['Patient ID'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        96
+      ],
+      "id": "5fd88a8b-8b6d-409a-8d4c-a856150f4e79",
+      "name": "Shape — Reminder Email"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E",
+          "mode": "list",
+          "cachedResultName": "Dental Clinic Demo — Patient Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1183646179,
+          "mode": "list",
+          "cachedResultName": "Clinic Config",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit#gid=1183646179"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        192
+      ],
+      "id": "8bffcff5-dd0b-45e4-989e-d0c09cb146a7",
+      "name": "Read — Clinic Config",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "g00qwQwZxV01ZjPJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        96
+      ],
+      "id": "21da2fe8-59f5-43a1-baed-b4a6f5051866",
+      "name": "Merge — Patients + Config"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        96
+      ],
+      "id": "4bcfd4df-2a39-4e71-9429-b3bfc926f75a",
+      "name": "Send — Reminder Email",
+      "webhookId": "945c95a8-7aad-44a2-bbc1-b481f5fc05f9",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "COgzIk5q8MxwdN33",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E",
+          "mode": "list",
+          "cachedResultName": "Dental Clinic Demo — Patient Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Patients",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Last Reminder Sent": "={{ DateTime.now().setZone('Asia/Kolkata').toFormat('yyyy-MM-dd') }}",
+            "Patient ID": "={{ $('Merge — Patients + Config').item.json['Patient ID'] }}"
+          },
+          "matchingColumns": [
+            "Patient ID"
+          ],
+          "schema": [
+            {
+              "id": "Patient ID",
+              "displayName": "Patient ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Appointment Date",
+              "displayName": "Appointment Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Appointment Time",
+              "displayName": "Appointment Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Appointment Type",
+              "displayName": "Appointment Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Dentist Name",
+              "displayName": "Dentist Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Last Reminder Sent",
+              "displayName": "Last Reminder Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Review Request Sent",
+              "displayName": "Review Request Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Re-engagement Sent",
+              "displayName": "Re-engagement Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        96
+      ],
+      "id": "e103ea96-a315-4ac6-934c-9e24f1a74970",
+      "name": "Log — Reminder Sent",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "g00qwQwZxV01ZjPJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Filters for: tomorrow's date (IST) + Status=Scheduled + has email + no reminder already sent",
+        "height": 96,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        400,
+        -128
+      ],
+      "typeVersion": 1,
+      "id": "a570038a-a9f3-4756-995f-ef8bdd7493b5",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        96
+      ],
+      "id": "e4b7437c-b786-4151-b62a-1cbe86be83ef",
+      "name": "Daily 9AM IST Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Read — Patient Database": {
+      "main": [
+        [
+          {
+            "node": "Filter — Tomorrow + Scheduled + Has Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter — Tomorrow + Scheduled + Has Email": {
+      "main": [
+        [
+          {
+            "node": "Merge — Patients + Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read — Clinic Config": {
+      "main": [
+        [
+          {
+            "node": "Merge — Patients + Config",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge — Patients + Config": {
+      "main": [
+        [
+          {
+            "node": "Shape — Reminder Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape — Reminder Email": {
+      "main": [
+        [
+          {
+            "node": "Send — Reminder Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send — Reminder Email": {
+      "main": [
+        [
+          {
+            "node": "Log — Reminder Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 9AM IST Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read — Patient Database",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read — Clinic Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "P3rVs23Wrl1ijkpH",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "1fa8caca-0012-4f65-9131-e04cf8d2a374",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "13ab7faddf8177dfc54c355fe0bb6d3707eba5bbd855cce2f4e0eb97db61c2d2"
+  },
+  "id": "TGVdHPDpS3G01AEn",
+  "tags": []
+}

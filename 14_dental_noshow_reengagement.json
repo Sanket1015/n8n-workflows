@@ -1,0 +1,515 @@
+{
+  "name": "Dental — No-Show Re-engagement",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Dental Clinic Product — Workflow 3 of 3. Sends friendly rebooking emails to patients who missed their appointment yesterday.",
+        "height": 96,
+        "width": 352
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -96,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "e7e2b0cb-d198-4cad-9506-562373c24a47",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E",
+          "mode": "list",
+          "cachedResultName": "Dental Clinic Demo — Patient Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Patients",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "43032686-24fd-4ce8-9bc3-37e9755120ca",
+      "name": "Read Patient Database",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "g00qwQwZxV01ZjPJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E",
+          "mode": "list",
+          "cachedResultName": "Dental Clinic Demo — Patient Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1183646179,
+          "mode": "list",
+          "cachedResultName": "Clinic Config",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit#gid=1183646179"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        192
+      ],
+      "id": "91620ce9-13ad-4cf1-8159-a9c4f45fa65f",
+      "name": "Read Clinic Config",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "g00qwQwZxV01ZjPJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const yesterday = DateTime.now().setZone('Asia/Kolkata').minus({ days: 1 }).toFormat('yyyy-MM-dd');\n\nconst filtered = $input.all().filter(item => {\n  const status = (item.json['Status'] || '').trim();\n  const appointmentDate = (item.json['Appointment Date'] || '').trim();\n  const reengagementSent = (item.json['Re-engagement Sent'] || '').trim();\n  const email = (item.json['Email'] || '').trim();\n\n  return status === 'No-Show' &&\n         appointmentDate === yesterday &&\n         reengagementSent === '' &&\n         email !== '';\n});\n\nif (filtered.length === 0) {\n  return [];\n}\n\nreturn filtered;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "4489fe53-455e-439d-b24a-ac9b0c6dc08b",
+      "name": "Filter — No-Show Yesterday, No Re-engagement Sent"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        96
+      ],
+      "id": "ea77d674-3705-40fc-bdbd-b0de7ba1e629",
+      "name": "Merge — Patients + Config"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5f1cb9ad-8ecf-4a54-a596-8bc8f91ff071",
+              "name": "to",
+              "value": "={{ $json['Email'] }}",
+              "type": "string"
+            },
+            {
+              "id": "842be632-06b8-4a80-b324-241abe6e82b1",
+              "name": "subject",
+              "value": "=We missed you at {{ $json['Clinic Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "7cf908bc-79a2-4fd7-af41-9713f35c38d9",
+              "name": "body",
+              "value": "=Dear {{ $json['First Name'] }},<br><br>We noticed you weren't able to make it to your {{ $json['Appointment Type'] }} appointment on {{ $json['Appointment Date'] }} — no worries at all! We know life gets busy.<br><br>Your dental health is important to us, and we'd love to get you rescheduled at a time that works better for you.<br><br>You can call us at {{ $json['Clinic Phone'] }} or simply reply to this email to book a new appointment.<br><br>We look forward to seeing you soon!<br><br>Warm regards,<br>The {{ $json['Clinic Name'] }} Team",
+              "type": "string"
+            },
+            {
+              "id": "2101afa0-2e4c-43ea-9727-e4b1902383b7",
+              "name": "patientId",
+              "value": "={{ $json['Patient ID'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        96
+      ],
+      "id": "5eea7afc-2d97-458e-840b-9831923df9b6",
+      "name": "Shape Re-engagement Email"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        96
+      ],
+      "id": "ad8be60b-ce70-463f-aaca-bd2e4317cecb",
+      "name": "Trigger — Daily 10 AM IST"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        96
+      ],
+      "id": "46e1b8d9-918e-4184-8929-847c0a4d8d34",
+      "name": "Send Re-engagement Email",
+      "webhookId": "51d78bc9-11aa-4d80-a869-d761a00e6b4d",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "COgzIk5q8MxwdN33",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E",
+          "mode": "list",
+          "cachedResultName": "Dental Clinic Demo — Patient Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Patients",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnHNeIZv_8UWrsYWRn-gVUrrKqgrFaV7JyjaryAeI5E/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Patient ID": "={{ $('Shape Re-engagement Email').item.json.patientId }}",
+            "Re-engagement Sent": "={{ DateTime.now().setZone('Asia/Kolkata').toFormat('yyyy-MM-dd') }}"
+          },
+          "matchingColumns": [
+            "Patient ID"
+          ],
+          "schema": [
+            {
+              "id": "Patient ID",
+              "displayName": "Patient ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Appointment Date",
+              "displayName": "Appointment Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Appointment Time",
+              "displayName": "Appointment Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Appointment Type",
+              "displayName": "Appointment Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Dentist Name",
+              "displayName": "Dentist Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Last Reminder Sent",
+              "displayName": "Last Reminder Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Review Request Sent",
+              "displayName": "Review Request Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Re-engagement Sent",
+              "displayName": "Re-engagement Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        96
+      ],
+      "id": "e02aaf91-2e2d-4516-89c7-ec18e4e3a013",
+      "name": "Log — Re-engagement Sent",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "g00qwQwZxV01ZjPJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Filters for: Status=No-Show, Appointment Date=yesterday (IST), Re-engagement Sent empty, has email.",
+        "height": 112
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        384,
+        -144
+      ],
+      "typeVersion": 1,
+      "id": "8106518f-9892-421c-a4d3-28ea41396a00",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Read Patient Database": {
+      "main": [
+        [
+          {
+            "node": "Filter — No-Show Yesterday, No Re-engagement Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter — No-Show Yesterday, No Re-engagement Sent": {
+      "main": [
+        [
+          {
+            "node": "Merge — Patients + Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Clinic Config": {
+      "main": [
+        [
+          {
+            "node": "Merge — Patients + Config",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge — Patients + Config": {
+      "main": [
+        [
+          {
+            "node": "Shape Re-engagement Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Re-engagement Email": {
+      "main": [
+        [
+          {
+            "node": "Send Re-engagement Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger — Daily 10 AM IST": {
+      "main": [
+        [
+          {
+            "node": "Read Patient Database",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Clinic Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Re-engagement Email": {
+      "main": [
+        [
+          {
+            "node": "Log — Re-engagement Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "P3rVs23Wrl1ijkpH",
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": -1,
+    "availableInMCP": false
+  },
+  "versionId": "7c08869c-4e90-4abb-aa8f-7613001805ad",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "13ab7faddf8177dfc54c355fe0bb6d3707eba5bbd855cce2f4e0eb97db61c2d2"
+  },
+  "id": "T0nWDfmz2Zj8Dqcq",
+  "tags": []
+}
