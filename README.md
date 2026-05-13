@@ -34,6 +34,24 @@ Companion workflow for the Invoice Processor. Runs daily at 6 PM, reads the Invo
 
 **Setup required after import:** (1) Create your own Google Sheets OAuth and Telegram credentials and assign them in each node. (2) Point the Google Sheets node to your own Invoice Log spreadsheet. (3) Create or assign your own error handler workflow in Workflow Settings → Error Workflow.
 
+### 12_dental_appointment_reminder.json — Dental Appointment Reminder
+
+Part 1 of the Dental Clinic Automation Suite. Runs daily at 9 AM, reads a patient database from Google Sheets, filters for tomorrow's appointments (Status = Scheduled, has email, no reminder already sent), attaches clinic config, and sends a personalized reminder email. Updates a tracking column to prevent duplicate sends on re-runs.
+
+**Setup required after import:** (1) Create your own Gmail OAuth and Google Sheets OAuth credentials and assign them in each node. (2) Create your own Google Sheet with a "Patients" tab and a "Clinic Config" tab matching the expected column names. (3) Create or assign your own error handler workflow in Workflow Settings → Error Workflow.
+
+### 13_dental_review_request.json — Dental Post-Visit Review Request
+
+Part 2 of the Dental Clinic Automation Suite. Runs daily at 6 PM, finds patients who completed their visit today and haven't received a review request yet, and sends a thank-you email with a direct Google review link from the clinic config. Updates a tracking column to prevent duplicates.
+
+**Setup required after import:** (1) Same credentials as Workflow 12. (2) Same Google Sheet structure. (3) Add your clinic's Google review URL to the Clinic Config tab. (4) Create or assign your own error handler workflow in Workflow Settings → Error Workflow.
+
+### 14_dental_noshow_reengagement.json — Dental No-Show Re-engagement
+
+Part 3 of the Dental Clinic Automation Suite. Runs daily at 10 AM, finds patients who missed their appointment yesterday (Status = No-Show) and haven't been contacted yet, and sends a friendly, no-guilt rebooking email with the clinic's phone number. Updates a tracking column to prevent duplicates.
+
+**Setup required after import:** (1) Same credentials as Workflow 12. (2) Same Google Sheet structure. (3) Create or assign your own error handler workflow in Workflow Settings → Error Workflow.
+
 ## Contact
 
 - Email: sanket.automates@gmail.com
